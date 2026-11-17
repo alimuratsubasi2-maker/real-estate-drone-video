@@ -1,0 +1,45 @@
+{
+  "name": "gebizli_2+1_bahce_kati",
+  "center": [36.89656, 30.73706],
+  "half": 210,
+  "title": "2+1 Satılık Daire",
+  "subtitle": "Havuzlu sitede bahçe katı",
+  "location": "Antalya / Muratpaşa / Gebizli",
+  "features": ["Havuz", "Kapalı otopark", "Çocuk oyun alanı", "Site görevlisi"],
+  "pool": {"x": -1, "z": 1, "r": 11, "w": 19, "d": 15, "rot": 0.2},
+  "unit": {"building": "B2", "side": "east", "floor": 0, "span": 12, "garden": 5.5},
+  "buildings": [
+    {"id": "B1", "site": true, "x": 0, "z": -32, "w": 27, "d": 18, "rot": 0.2, "floors": 7},
+    {"id": "B2", "site": true, "x": -28, "z": 10, "w": 19, "d": 27, "rot": 0.2, "floors": 7},
+    {"id": "B2a", "site": true, "x": -31, "z": 34, "w": 13, "d": 11, "rot": 0.2, "floors": 2},
+    {"id": "B3", "site": true, "x": 10, "z": 27, "w": 28, "d": 19, "rot": 0.2, "floors": 7},
+    {"id": "B4", "site": true, "x": -45, "z": -54, "w": 18, "d": 27, "rot": 0.2, "floors": 7},
+    {"id": "B4a", "site": true, "x": -43, "z": -29, "w": 13, "d": 13, "rot": 0.2, "floors": 2},
+
+    {"id": "N1", "x": -10, "z": -93, "w": 26, "d": 19, "rot": 0.2, "floors": 7},
+    {"id": "S1", "x": 18, "z": 62, "w": 26, "d": 20, "rot": 0.2, "floors": 7},
+    {"id": "S2", "x": -23, "z": 94, "w": 20, "d": 28, "rot": 0.2, "floors": 7},
+    {"id": "S3", "x": -10, "z": 136, "w": 18, "d": 24, "rot": 0.2, "floors": 7},
+    {"id": "S4", "x": 22, "z": 136, "w": 20, "d": 16, "rot": 0.2, "floors": 6},
+
+    {"id": "L1", "x": -117, "z": -128, "w": 27, "d": 21, "rot": 0.15, "floors": 6},
+    {"id": "L2", "x": -118, "z": -94, "w": 22, "d": 26, "rot": 0.15, "floors": 6},
+    {"id": "L3", "x": -113, "z": -55, "w": 24, "d": 32, "rot": 0.15, "floors": 6},
+    {"id": "L4", "x": -115, "z": -15, "w": 26, "d": 24, "rot": 0.15, "floors": 6},
+    {"id": "L5", "x": -82, "z": 22, "w": 18, "d": 20, "rot": 0.15, "floors": 6},
+    {"id": "L6", "x": -80, "z": 52, "w": 20, "d": 24, "rot": 0.15, "floors": 6},
+    {"id": "L7", "x": -140, "z": 40, "w": 20, "d": 18, "rot": 0.15, "floors": 5},
+    {"id": "M1", "x": -60, "z": -125, "w": 20, "d": 30, "rot": 0.2, "floors": 5},
+    {"id": "M2", "x": -25, "z": -130, "w": 30, "d": 24, "rot": 0.2, "floors": 5},
+    {"id": "D1", "x": -62, "z": 92, "w": 20, "d": 30, "rot": 0.2, "floors": 6},
+    {"id": "D2", "x": -66, "z": 140, "w": 18, "d": 20, "rot": 0.2, "floors": 5}
+  ],
+  "low": [
+    {"x": 95, "z": -128, "w": 52, "d": 14, "rot": 0.1, "h": 4.5, "color": "#dfe3e6", "kind": "greenhouse"},
+    {"x": 62, "z": -112, "w": 30, "d": 11, "rot": 0.1, "h": 4.5, "color": "#dfe3e6", "kind": "greenhouse"},
+    {"x": 105, "z": 0, "w": 34, "d": 18, "rot": 0.25, "h": 5, "color": "#9ea5a2", "kind": "shed"},
+    {"x": 68, "z": 15, "w": 9, "d": 22, "rot": 0.1, "h": 4, "color": "#b9bdbd", "kind": "shed"},
+    {"x": 140, "z": 70, "w": 32, "d": 95, "rot": 0.1, "h": 5, "color": "#e3e6e8", "kind": "greenhouse"},
+    {"x": 140, "z": -60, "w": 22, "d": 70, "rot": 0.1, "h": 4.5, "color": "#b8bfbc", "kind": "shed"}
+  ]
+}

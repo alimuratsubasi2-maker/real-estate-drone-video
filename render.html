@@ -1,0 +1,163 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  html, body { margin: 0; background: #000; overflow: hidden; }
+  canvas { display: block; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<script type="module">
+// Drone-style orbit over a parcel. Driven frame by frame from Python via window.renderAt(t).
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+const cfg = window.SCENE_CONFIG;
+const W = cfg.width, H = cfg.height;
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1);
+renderer.setSize(W, H);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.shadowMap.enabled = true;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xbfd6e8);
+scene.fog = new THREE.Fog(0xbfd6e8, cfg.radius * 2.2, cfg.radius * 5.5);
+
+const camera = new THREE.PerspectiveCamera(55, W / H, 1, 20000);
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0x6b7a55, 1.6));
+const sun = new THREE.DirectionalLight(0xfff1d6, 2.2);
+sun.position.set(cfg.radius * 0.8, cfg.radius * 1.4, cfg.radius * 0.6);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+const sc = sun.shadow.camera;
+sc.left = sc.bottom = -cfg.radius; sc.right = sc.top = cfg.radius; sc.far = cfg.radius * 6;
+scene.add(sun);
+
+// Satellite ground
+const tex = await new THREE.TextureLoader().loadAsync(cfg.texture);
+tex.colorSpace = THREE.SRGBColorSpace;
+tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+const ground = new THREE.Mesh(
+  new THREE.PlaneGeometry(cfg.ground.width, cfg.ground.height),
+  new THREE.MeshStandardMaterial({ map: tex, roughness: 1 })
+);
+ground.rotation.x = -Math.PI / 2;
+ground.position.set(cfg.ground.cx, 0, cfg.ground.cz);
+ground.receiveShadow = true;
+scene.add(ground);
+
+// Parcel: translucent fill, glowing outline, low light wall
+const pts = cfg.polygon.map(([x, z]) => new THREE.Vector2(x, -z));
+const shape = new THREE.Shape(pts);
+const fill = new THREE.Mesh(
+  new THREE.ShapeGeometry(shape),
+  new THREE.MeshBasicMaterial({ color: 0xffe14d, transparent: true, opacity: 0.22, depthWrite: false })
+);
+fill.rotation.x = -Math.PI / 2;
+fill.position.y = 0.15;
+scene.add(fill);
+
+const ring = cfg.polygon.map(([x, z]) => new THREE.Vector3(x, 0.4, z));
+ring.push(ring[0].clone());
+const curve = new THREE.CatmullRomCurve3(ring, false, 'catmullrom', 0);
+const outline = new THREE.Mesh(
+  new THREE.TubeGeometry(curve, ring.length * 24, cfg.lineWidth, 6, false),
+  new THREE.MeshBasicMaterial({ color: 0xffd21f })
+);
+scene.add(outline);
+
+const wallGeo = new THREE.BufferGeometry();
+const wallPos = [], wallUv = [];
+for (let i = 0; i < ring.length - 1; i++) {
+  const a = ring[i], b = ring[i + 1];
+  wallPos.push(a.x, 0, a.z, b.x, 0, b.z, b.x, cfg.wallHeight, b.z, a.x, 0, a.z, b.x, cfg.wallHeight, b.z, a.x, cfg.wallHeight, a.z);
+  wallUv.push(0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1);
+}
+wallGeo.setAttribute('position', new THREE.Float32BufferAttribute(wallPos, 3));
+wallGeo.setAttribute('uv', new THREE.Float32BufferAttribute(wallUv, 2));
+const wallMat = new THREE.ShaderMaterial({
+  transparent: true, depthWrite: false, side: THREE.DoubleSide,
+  uniforms: { color: { value: new THREE.Color(0xffd21f) } },
+  vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
+  fragmentShader: 'uniform vec3 color; varying vec2 vUv; void main(){ gl_FragColor = vec4(color, 0.55 * (1.0 - vUv.y)); }',
+});
+scene.add(new THREE.Mesh(wallGeo, wallMat));
+
+// Optional house model, scaled to fit the parcel footprint
+if (cfg.house) {
+  const gltf = await new GLTFLoader().loadAsync(cfg.house.url);
+  const house = gltf.scene;
+  const box = new THREE.Box3().setFromObject(house);
+  const size = box.getSize(new THREE.Vector3());
+  const s = cfg.house.footprint / Math.max(size.x, size.z);
+  house.scale.setScalar(s);
+  const b2 = new THREE.Box3().setFromObject(house);
+  const c2 = b2.getCenter(new THREE.Vector3());
+  house.position.set(cfg.centroid[0] - c2.x, -b2.min.y, cfg.centroid[1] - c2.z);
+  house.rotation.y = cfg.house.rotation || 0;
+  house.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+  scene.add(house);
+}
+
+// Floating area label
+function labelSprite(text, sub) {
+  const c = document.createElement('canvas');
+  c.width = 1024; c.height = 300;
+  const g = c.getContext('2d');
+  g.font = '800 150px "Segoe UI", Arial, sans-serif';
+  g.textAlign = 'center';
+  g.lineWidth = 18; g.strokeStyle = 'rgba(0,0,0,0.55)';
+  g.strokeText(text, 512, 150);
+  g.fillStyle = '#ffffff'; g.fillText(text, 512, 150);
+  if (sub) {
+    g.font = '700 62px "Segoe UI", Arial, sans-serif';
+    g.lineWidth = 10; g.strokeText(sub, 512, 245);
+    g.fillStyle = '#ffe14d'; g.fillText(sub, 512, 245);
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, depthTest: false, transparent: true }));
+  sp.renderOrder = 10;
+  return sp;
+}
+const label = labelSprite(cfg.areaText, cfg.subText);
+label.position.set(cfg.centroid[0], cfg.labelHeight, cfg.centroid[1]);
+scene.add(label);
+
+const ease = (x) => x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const target = new THREE.Vector3(cfg.centroid[0], 0, cfg.centroid[1]);
+
+// t in [0,1]: descend from top-down to oblique while orbiting
+window.renderAt = (t) => {
+  const d = ease(Math.min(1, t / 0.35));
+  const dist = THREE.MathUtils.lerp(cfg.radius * 3.6, cfg.radius * 2.4, d);
+  const pitch = THREE.MathUtils.lerp(Math.PI * 0.47, Math.PI * 0.27, d);
+  const yaw = cfg.startYaw + t * cfg.orbit;
+  camera.position.set(
+    target.x + Math.cos(yaw) * Math.cos(pitch) * dist,
+    Math.sin(pitch) * dist,
+    target.z + Math.sin(yaw) * Math.cos(pitch) * dist
+  );
+  camera.lookAt(target);
+  label.scale.set(cfg.labelSize * dist / (cfg.radius * 2.4), cfg.labelSize * 0.293 * dist / (cfg.radius * 2.4), 1);
+  label.material.opacity = Math.min(1, Math.max(0, (t - 0.12) / 0.15));
+  renderer.render(scene, camera);
+  return true;
+};
+window.READY = true;
+</script>
+</body>
+</html>
